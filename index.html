@@ -1,0 +1,1815 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teatro 31 de Octubre - Llallagua, Potosí</title>
+
+    <!-- Fuentes de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Outfit:wght@300;400;500;600;700&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- Iconos de FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Dependencias de Postprocesamiento 3D (Google Model-Viewer Effects & Three.js) -->
+    <script async src="https://ga.jspm.io/npm:es-module-shims@1.7.1/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@^0.183.0/build/three.module.min.js"
+      }
+    }
+    </script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer/dist/model-viewer-module.min.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer-effects/dist/model-viewer-effects.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark-1: #0a0e17;
+            --bg-dark-2: #161224;
+            --bg-card: rgba(12, 17, 27, 0.82);
+            --bg-modal: rgba(8, 12, 20, 0.95);
+            --accent-gold: #c9a66b;
+            --accent-gold-light: #e5cd9c;
+            --text-light: #f0f4f8;
+            --text-muted: #a0aec0;
+            --border-gold: rgba(201, 166, 107, 0.35);
+            --shadow-glow: 0 0 25px rgba(201, 166, 107, 0.22);
+            
+            /* Variables dinámicas de Postprocesamiento */
+            --fx-vignette-intensity: 0.85;
+            --fx-grain-intensity: 0.32;
+            --fx-bloom-intensity: 0.75;
+            --fx-chromatic-intensity: 2px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            color: var(--text-light);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+            padding-top: 85px;
+            -webkit-font-smoothing: antialiased;
+            position: relative;
+            background-color: var(--bg-dark-1);
+            overflow-x: hidden;
+        }
+
+        /* -------------------------------------------------------------
+           FONDO DIFUMINADO CON LA FACHADA DEL TEATRO (IMAGENES/FRENTTE1.JPG)
+        ------------------------------------------------------------- */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, rgba(8, 11, 20, 0.83) 0%, rgba(18, 14, 28, 0.88) 100%),
+                        url('imagenes/frentte1.jpg') no-repeat center center / cover;
+            filter: blur(12px) brightness(0.65) contrast(1.1);
+            transform: scale(1.08);
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        /* -------------------------------------------------------------
+           CAPAS DE EFECTOS DE POSTPROCESAMIENTO (SCREEN-SPACE SHADERS)
+        ------------------------------------------------------------- */
+        .post-processing-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 700;
+            overflow: hidden;
+        }
+
+        /* 1. Viñeteado de lente (Vignette) */
+        .postfx-vignette {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.4) 75%, rgba(0, 0, 0, 0.95) 100%);
+            opacity: var(--fx-vignette-intensity);
+            transition: opacity 0.3s ease;
+        }
+
+        /* 2. Grano de película de 35mm (Film Grain / Cine Siglo XX) */
+        .postfx-grain {
+            position: absolute;
+            inset: -50px;
+            opacity: var(--fx-grain-intensity);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+            animation: filmGrainAnim 0.35s steps(5) infinite;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes filmGrainAnim {
+            0% { transform: translate(0, 0); }
+            20% { transform: translate(-3%, 2%); }
+            40% { transform: translate(2%, -3%); }
+            60% { transform: translate(-2%, -2%); }
+            80% { transform: translate(3%, 1%); }
+            100% { transform: translate(0, 0); }
+        }
+
+        /* 3. Bloom ambiental / Resplandor dorado */
+        .postfx-bloom {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 35%, rgba(201, 166, 107, 0.18) 0%, transparent 60%);
+            mix-blend-mode: screen;
+            opacity: var(--fx-bloom-intensity);
+            transition: opacity 0.3s ease;
+        }
+
+        /* 4. Gradación de color y contraste cinematográfico (ACES Color Grade) */
+        .postfx-colorgrade {
+            position: absolute;
+            inset: 0;
+            background: rgba(35, 20, 10, 0.06);
+            mix-blend-mode: color;
+            backdrop-filter: contrast(106%) saturate(112%) brightness(102%);
+            -webkit-backdrop-filter: contrast(106%) saturate(112%) brightness(102%);
+            transition: opacity 0.3s ease;
+        }
+
+        /* 5. Aberración cromática (Dispersión óptica en bordes) */
+        .postfx-chromatic {
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 80px rgba(0, 180, 255, 0.08), inset 0 0 140px rgba(255, 30, 80, 0.08);
+            mix-blend-mode: screen;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Clases desactivadas */
+        .postfx-off {
+            opacity: 0 !important;
+        }
+
+        /* -------------------------------------------------------------
+           PANEL FLOTANTE DE CONTROL DE POSTPROCESAMIENTO (HUD STUDIO)
+        ------------------------------------------------------------- */
+        .btn-postfx-toggle {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            z-index: 1100;
+            background: linear-gradient(135deg, rgba(201, 166, 107, 0.95), rgba(139, 30, 43, 0.95));
+            color: #111;
+            border: 2px solid var(--accent-gold-light);
+            border-radius: 30px;
+            padding: 10px 20px;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8), var(--shadow-glow);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .btn-postfx-toggle:hover {
+            transform: scale(1.06) translateY(-2px);
+            filter: brightness(1.15);
+            box-shadow: 0 12px 35px rgba(201, 166, 107, 0.5);
+        }
+
+        .postfx-hud-panel {
+            position: fixed;
+            bottom: 78px;
+            right: 22px;
+            width: 330px;
+            background: rgba(8, 12, 20, 0.96);
+            border: 2px solid var(--accent-gold);
+            border-radius: 16px;
+            padding: 22px;
+            z-index: 1100;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(201, 166, 107, 0.25);
+            backdrop-filter: blur(16px);
+            display: none;
+            animation: fadeInHud 0.25s ease-out forwards;
+        }
+
+        .postfx-hud-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeInHud {
+            from { opacity: 0; transform: translateY(12px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .postfx-hud-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-gold);
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        .postfx-hud-header h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.15rem;
+            color: var(--accent-gold-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .postfx-hud-close {
+            background: transparent;
+            border: none;
+            color: var(--accent-gold);
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .postfx-presets {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .preset-chip {
+            background: rgba(201, 166, 107, 0.15);
+            border: 1px solid var(--border-gold);
+            color: var(--accent-gold-light);
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preset-chip:hover {
+            background: var(--accent-gold);
+            color: #111;
+        }
+
+        .postfx-group {
+            margin-bottom: 14px;
+        }
+
+        .postfx-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            color: #ddd;
+        }
+
+        .postfx-row label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .postfx-switch {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 20px;
+        }
+
+        .postfx-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #333;
+            transition: 0.3s;
+            border-radius: 20px;
+            border: 1px solid rgba(201, 166, 107, 0.4);
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #fff;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .postfx-switch input:checked + .switch-slider {
+            background-color: var(--accent-gold);
+        }
+
+        .postfx-switch input:checked + .switch-slider:before {
+            transform: translateX(18px);
+            background-color: #111;
+        }
+
+        .postfx-slider {
+            width: 100%;
+            height: 5px;
+            accent-color: var(--accent-gold);
+            cursor: pointer;
+        }
+
+        /* -------------------------------------------------------------
+           ANIMACIÓN TIPO PARPADEO DE DIBUJOS ANIMADOS (CARTOON BLINK)
+        ------------------------------------------------------------- */
+        .cartoon-blink-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 99999;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cartoon-eyelid {
+            width: 100%;
+            height: 50%;
+            background: radial-gradient(ellipse at 50% 50%, #150f1d 0%, #030408 100%);
+            box-shadow: inset 0 0 70px rgba(0, 0, 0, 0.95);
+            position: relative;
+        }
+
+        .eyelid-top {
+            transform-origin: top center;
+            border-bottom: 4px solid var(--accent-gold);
+        }
+
+        .eyelid-bottom {
+            transform-origin: bottom center;
+            border-top: 4px solid var(--accent-gold);
+        }
+
+        .cartoon-blink-overlay.blink-open .eyelid-top {
+            animation: cartoonBlinkOpenTop 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        .cartoon-blink-overlay.blink-open .eyelid-bottom {
+            animation: cartoonBlinkOpenBottom 0.85s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .cartoon-blink-overlay.blink-close {
+            pointer-events: all;
+        }
+        .cartoon-blink-overlay.blink-close .eyelid-top {
+            animation: cartoonBlinkCloseTop 0.65s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+        }
+        .cartoon-blink-overlay.blink-close .eyelid-bottom {
+            animation: cartoonBlinkCloseBottom 0.65s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+        }
+
+        @keyframes cartoonBlinkOpenTop {
+            0%   { transform: scaleY(1); }
+            30%  { transform: scaleY(0.15); }
+            50%  { transform: scaleY(0.75); }
+            70%  { transform: scaleY(0.08); }
+            85%  { transform: scaleY(0.25); }
+            100% { transform: scaleY(0); }
+        }
+
+        @keyframes cartoonBlinkOpenBottom {
+            0%   { transform: scaleY(1); }
+            30%  { transform: scaleY(0.15); }
+            50%  { transform: scaleY(0.75); }
+            70%  { transform: scaleY(0.08); }
+            85%  { transform: scaleY(0.25); }
+            100% { transform: scaleY(0); }
+        }
+
+        @keyframes cartoonBlinkCloseTop {
+            0%   { transform: scaleY(0); }
+            35%  { transform: scaleY(0.8); }
+            55%  { transform: scaleY(0.3); }
+            80%  { transform: scaleY(1); }
+            100% { transform: scaleY(1); }
+        }
+
+        @keyframes cartoonBlinkCloseBottom {
+            0%   { transform: scaleY(0); }
+            35%  { transform: scaleY(0.8); }
+            55%  { transform: scaleY(0.3); }
+            80%  { transform: scaleY(1); }
+            100% { transform: scaleY(1); }
+        }
+
+        /* -------------------------------------------------------------
+           MENÚ SUPERIOR FIJO (NAVBAR)
+        ------------------------------------------------------------- */
+        .navbar-top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 75px;
+            background: rgba(10, 14, 23, 0.94);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 2px solid var(--accent-gold);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 35px;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--accent-gold);
+            cursor: pointer;
+        }
+
+        .navbar-brand i {
+            font-size: 1.8rem;
+        }
+
+        .navbar-brand span {
+            font-family: 'UnifrakturCook', serif;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(201, 166, 107, 0.4);
+        }
+
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            gap: 10px;
+        }
+
+        .nav-item button,
+        .nav-item a {
+            background: transparent;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-light);
+            text-decoration: none;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 9px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item button i,
+        .nav-item a i {
+            color: var(--accent-gold);
+            font-size: 1.15rem;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item button:hover,
+        .nav-item a:hover {
+            background: rgba(201, 166, 107, 0.16);
+            border-color: var(--border-gold);
+            color: var(--accent-gold-light);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-postfx-nav {
+            border: 1px solid var(--border-gold) !important;
+            color: var(--accent-gold-light) !important;
+            background: rgba(201, 166, 107, 0.15) !important;
+        }
+
+        .btn-interiores-nav {
+            background: linear-gradient(135deg, rgba(201, 166, 107, 0.25), rgba(139, 30, 43, 0.4)) !important;
+            border: 1px solid var(--accent-gold) !important;
+            color: var(--accent-gold-light) !important;
+        }
+
+        /* -------------------------------------------------------------
+           CONTENEDOR PRINCIPAL
+        ------------------------------------------------------------- */
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 20px 24px 60px;
+        }
+
+        .hero-banner {
+            text-align: center;
+            padding: 25px 20px 20px;
+            background: rgba(10, 14, 23, 0.45);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            border: 1px solid var(--border-gold);
+            margin-bottom: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .hero-title {
+            font-family: 'UnifrakturCook', serif;
+            font-size: 4.2rem;
+            color: var(--accent-gold);
+            text-shadow: 0 4px 25px rgba(0, 0, 0, 0.9), 0 0 12px rgba(201, 166, 107, 0.4);
+            margin-bottom: 6px;
+            letter-spacing: 1.5px;
+        }
+
+        .hero-subtitle {
+            font-family: 'Cinzel', serif;
+            font-size: 1.25rem;
+            color: var(--accent-gold-light);
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .gold-divider {
+            height: 3px;
+            width: 130px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+
+        /* -------------------------------------------------------------
+           CARRUSEL DESLIZANTE 3D (ZOMBIE -> TEATRO5 -> SIMON2)
+        ------------------------------------------------------------- */
+        .slider-section {
+            position: relative;
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .slider-nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .slide-tab {
+            background: rgba(15, 23, 36, 0.85);
+            border: 1px solid var(--border-gold);
+            color: var(--text-muted);
+            padding: 10px 22px;
+            border-radius: 25px;
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(8px);
+        }
+
+        .slide-tab.active,
+        .slide-tab:hover {
+            background: linear-gradient(135deg, rgba(201, 166, 107, 0.3), rgba(139, 30, 43, 0.35));
+            border-color: var(--accent-gold);
+            color: var(--accent-gold-light);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-2px);
+        }
+
+        .slider-arrow {
+            position: absolute;
+            top: 260px;
+            transform: translateY(-50%);
+            background: rgba(10, 14, 23, 0.9);
+            border: 2px solid var(--accent-gold);
+            color: var(--accent-gold-light);
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 60;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8), var(--shadow-glow);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .slider-arrow:hover {
+            background: var(--accent-gold);
+            color: #111;
+            transform: translateY(-50%) scale(1.15);
+        }
+
+        .slider-arrow.prev { left: -12px; }
+        .slider-arrow.next { right: -12px; }
+
+        .carousel-wrapper {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 18px;
+            background: rgba(10, 14, 23, 0.35);
+            border: 1px solid rgba(201, 166, 107, 0.25);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
+        }
+
+        .slides-track {
+            display: flex;
+            width: 100%;
+            transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+            align-items: flex-start;
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            box-sizing: border-box;
+            padding: 30px 40px;
+        }
+
+        .slide-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .slide-header h2 {
+            font-family: 'UnifrakturCook', serif;
+            font-size: 3rem;
+            color: var(--accent-gold);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+        }
+
+        .slide-header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            margin-top: 4px;
+        }
+
+        /* CONTENEDOR TRANSPARENTE DEL OBJETO 3D */
+        .model-3d-box {
+            width: 100%;
+            height: 480px;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            position: relative;
+            margin: 0 auto 30px;
+        }
+
+        .model-hint-badge {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(10, 14, 23, 0.75);
+            color: var(--accent-gold-light);
+            font-size: 0.85rem;
+            padding: 7px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-gold);
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+        }
+
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: transparent !important;
+            --poster-color: transparent !important;
+        }
+
+        /* -------------------------------------------------------------
+           ESTILOS DE INFORMACIÓN / RESEÑA Y MEDIDAS (TEATRO Y SIMÓN)
+        ------------------------------------------------------------- */
+        .history-card-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-gold);
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            margin-bottom: 25px;
+        }
+
+        .history-card-box h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            font-size: 1.6rem;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .history-card-box p {
+            color: #e2e8f0;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+
+        .history-card-box strong {
+            color: var(--accent-gold);
+        }
+
+        .tech-specs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .spec-card {
+            background: rgba(12, 17, 27, 0.85);
+            border: 1px solid var(--border-gold);
+            border-left: 4px solid var(--accent-gold);
+            border-radius: 10px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+        }
+
+        .spec-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .spec-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-gold);
+            margin-bottom: 8px;
+        }
+
+        .spec-header i {
+            font-size: 1.4rem;
+        }
+
+        .spec-header h4 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+        }
+
+        .spec-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-gold-light);
+            margin-bottom: 4px;
+        }
+
+        .spec-desc {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .map-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-gold);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+        }
+
+        .map-card {
+            height: 320px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* -------------------------------------------------------------
+           MODAL GALERÍA
+        ------------------------------------------------------------- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(4, 7, 12, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 2000;
+            display: none;
+            overflow-y: auto;
+            padding: 30px 20px;
+            animation: fadeInModal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        @keyframes fadeInModal {
+            from { opacity: 0; transform: scale(0.97); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-window {
+            background: var(--bg-modal);
+            border: 2px solid var(--accent-gold);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 1140px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(201, 166, 107, 0.2);
+            padding: 35px;
+            position: relative;
+            margin: auto;
+        }
+
+        .modal-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-gold);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .modal-title-group h2 {
+            font-family: 'UnifrakturCook', serif;
+            font-size: 2.8rem;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-title-group p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-top: 4px;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--accent-gold);
+            font-size: 2rem;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(201, 166, 107, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .book-slider {
+            width: 100%;
+            max-width: 900px;
+            height: 380px;
+            margin: 0 auto 35px;
+            perspective: 1600px;
+            position: relative;
+        }
+
+        .pages {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        .page {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            background-size: cover;
+            background-position: center;
+            transform-origin: left center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 30px rgba(0,0,0,0.5);
+            border-radius: 10px;
+            border: 2px solid var(--accent-gold);
+            overflow: hidden;
+            backface-visibility: hidden;
+            animation: flip 16s ease-in-out infinite;
+        }
+
+        .page:nth-child(1) { animation-delay: 0s; }
+        .page:nth-child(2) { animation-delay: 4s; }
+        .page:nth-child(3) { animation-delay: 8s; }
+        .page:nth-child(4) { animation-delay: 12s; }
+
+        @keyframes flip {
+            0% { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+            20% { transform: rotateY(-90deg) translateZ(-40px); opacity: 0.2; }
+            25% { transform: rotateY(-180deg) translateZ(-60px); opacity: 0; }
+            26% { transform: rotateY(180deg) translateZ(-60px); opacity: 0; }
+            45% { transform: rotateY(90deg) translateZ(-40px); opacity: 0.2; }
+            50% { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+            100% { transform: rotateY(0deg) translateZ(0); opacity: 1; }
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 22px;
+        }
+
+        .gallery-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-gold);
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: all 0.35s ease;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-gold);
+            box-shadow: 0 14px 35px rgba(201, 166, 107, 0.25);
+        }
+
+        .gallery-card-img {
+            height: 220px;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .gallery-card-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .gallery-card:hover .gallery-card-img img {
+            transform: scale(1.08);
+        }
+
+        .gallery-card-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 40%, rgba(10, 14, 23, 0.9) 100%);
+            display: flex;
+            align-items: flex-end;
+            padding: 14px;
+        }
+
+        .gallery-card-title {
+            color: var(--accent-gold-light);
+            font-family: 'Cinzel', serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Lightbox para ampliar imagen */
+        .lightbox-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 15, 0.94);
+            backdrop-filter: blur(12px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .lightbox-modal.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            max-width: 90%;
+            max-height: 85vh;
+            border: 2px solid var(--accent-gold);
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(201, 166, 107, 0.3);
+            object-fit: contain;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 25px;
+            right: 35px;
+            color: var(--accent-gold);
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 860px) {
+            body { padding-top: 135px; }
+            .navbar-top {
+                flex-direction: column;
+                height: auto;
+                padding: 12px 20px;
+                gap: 10px;
+            }
+            .hero-title { font-size: 2.8rem; }
+            .slide-header h2 { font-size: 2.3rem; }
+            .model-3d-box { height: 360px; }
+            .carousel-slide { padding: 20px 14px; }
+            .slider-arrow { width: 44px; height: 44px; font-size: 1.1rem; }
+            .slider-arrow.prev { left: 4px; }
+            .slider-arrow.next { right: 4px; }
+            .modal-window { padding: 22px 16px; }
+            .book-slider { height: 260px; }
+            .postfx-hud-panel { width: calc(100vw - 30px); right: 15px; bottom: 75px; }
+            .btn-postfx-toggle { bottom: 15px; right: 15px; padding: 8px 16px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =============================================================
+         CAPAS DE EFECTOS DE POSTPROCESAMIENTO (SCREEN-SPACE SHADERS)
+    ============================================================= -->
+    <div id="postProcessingLayer" class="post-processing-container">
+        <!-- 1. Viñeta Cinematográfica -->
+        <div class="postfx-vignette" id="fxVignette"></div>
+        <!-- 2. Grano de Película 35mm -->
+        <div class="postfx-grain" id="fxGrain"></div>
+        <!-- 3. Resplandor / Bloom Ambiental -->
+        <div class="postfx-bloom" id="fxBloom"></div>
+        <!-- 4. Gradación de Color y Contraste Teatral -->
+        <div class="postfx-colorgrade" id="fxColorGrade"></div>
+        <!-- 5. Aberración Cromática de Lente -->
+        <div class="postfx-chromatic" id="fxChromatic"></div>
+    </div>
+
+    <!-- =============================================================
+         BOTÓN FLOTANTE Y PANEL HUD DE EFECTOS DE POSTPROCESAMIENTO
+    ============================================================= -->
+    <button id="btnToggleFxPanel" class="btn-postfx-toggle" onclick="togglePostFxPanel()" title="Configurar Postprocesamiento">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>Post-FX Studio</span>
+    </button>
+
+    <div id="postFxHudPanel" class="postfx-hud-panel">
+        <div class="postfx-hud-header">
+            <h3><i class="fa-solid fa-sliders"></i> Post-FX Studio</h3>
+            <button class="postfx-hud-close" onclick="togglePostFxPanel()">&times;</button>
+        </div>
+
+        <!-- Presets Cinematográficos Rápidos -->
+        <div class="postfx-presets">
+            <span class="preset-chip" onclick="applyFxPreset('vintage')">🎞️ Cine 1950</span>
+            <span class="preset-chip" onclick="applyFxPreset('hdr')">✨ HDR Bloom</span>
+            <span class="preset-chip" onclick="applyFxPreset('theatrical')">🏛️ Teatral</span>
+            <span class="preset-chip" onclick="applyFxPreset('off')">🚫 Desactivar</span>
+        </div>
+
+        <!-- 1. Bloom / Resplandor HDR -->
+        <div class="postfx-group">
+            <div class="postfx-row">
+                <label for="chkBloom"><i class="fa-solid fa-sun" style="color:var(--accent-gold)"></i> Bloom (Resplandor)</label>
+                <label class="postfx-switch">
+                    <input type="checkbox" id="chkBloom" checked onchange="toggleEffect('bloom', this.checked)">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            <input type="range" class="postfx-slider" id="sldBloom" min="0" max="1" step="0.05" value="0.75" oninput="setEffectIntensity('bloom', this.value)">
+        </div>
+
+        <!-- 2. Viñeta Cinematográfica -->
+        <div class="postfx-group">
+            <div class="postfx-row">
+                <label for="chkVignette"><i class="fa-solid fa-circle-dot" style="color:var(--accent-gold)"></i> Viñeteado de Lente</label>
+                <label class="postfx-switch">
+                    <input type="checkbox" id="chkVignette" checked onchange="toggleEffect('vignette', this.checked)">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            <input type="range" class="postfx-slider" id="sldVignette" min="0" max="1" step="0.05" value="0.85" oninput="setEffectIntensity('vignette', this.value)">
+        </div>
+
+        <!-- 3. Grano de Película 35mm -->
+        <div class="postfx-group">
+            <div class="postfx-row">
+                <label for="chkGrain"><i class="fa-solid fa-film" style="color:var(--accent-gold)"></i> Grano 35mm (Noise)</label>
+                <label class="postfx-switch">
+                    <input type="checkbox" id="chkGrain" checked onchange="toggleEffect('grain', this.checked)">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            <input type="range" class="postfx-slider" id="sldGrain" min="0" max="1" step="0.05" value="0.32" oninput="setEffectIntensity('grain', this.value)">
+        </div>
+
+        <!-- 4. Color Grading Teatral -->
+        <div class="postfx-group">
+            <div class="postfx-row">
+                <label for="chkColorGrade"><i class="fa-solid fa-palette" style="color:var(--accent-gold)"></i> Color Grading Teatral</label>
+                <label class="postfx-switch">
+                    <input type="checkbox" id="chkColorGrade" checked onchange="toggleEffect('colorgrade', this.checked)">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 5. Aberración Cromática -->
+        <div class="postfx-group" style="margin-bottom:0;">
+            <div class="postfx-row">
+                <label for="chkChromatic"><i class="fa-solid fa-eye" style="color:var(--accent-gold)"></i> Aberración Cromática</label>
+                <label class="postfx-switch">
+                    <input type="checkbox" id="chkChromatic" checked onchange="toggleEffect('chromatic', this.checked)">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- =============================================================
+         OVERLAY CON ANIMACIÓN TIPO PARPADEO DE DIBUJOS ANIMADOS
+    ============================================================= -->
+    <div id="cartoonBlinkOverlay" class="cartoon-blink-overlay blink-open">
+        <div class="cartoon-eyelid eyelid-top"></div>
+        <div class="cartoon-eyelid eyelid-bottom"></div>
+    </div>
+
+    <!-- =============================================================
+         BARRA DE NAVEGACIÓN FIJA EN LA PARTE SUPERIOR
+    ============================================================= -->
+    <header class="navbar-top">
+        <div class="navbar-brand" onclick="goToSlide(0)">
+            <i class="fa-solid fa-masks-theater"></i>
+            <span>Teatro 31 de Octubre</span>
+        </div>
+        <nav>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <button type="button" onclick="goToSlide(0)">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Inicio</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" onclick="goToSlide(1)">
+                        <i class="fa-solid fa-building-columns"></i>
+                        <span>Teatro & Historia</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" onclick="goToSlide(2)">
+                        <i class="fa-solid fa-crown"></i>
+                        <span>Fundador</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" onclick="openModal('modalGaleria')">
+                        <i class="fa-solid fa-images"></i>
+                        <span>Galería</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="btn-postfx-nav" onclick="togglePostFxPanel()">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Post-FX</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="btn-interiores-nav" onclick="transitionToInteriores()">
+                        <i class="fa-solid fa-door-open"></i>
+                        <span>Interiores</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+
+        <!-- =============================================================
+             TÍTULO PRINCIPAL
+        ============================================================= -->
+        <div class="hero-banner">
+            <h1 class="hero-title">Teatro 31 de Octubre</h1>
+            <p class="hero-subtitle">Llallagua &bull; Siglo XX &bull; Potosí &bull; Bolivia</p>
+            <div class="gold-divider"></div>
+        </div>
+
+        <!-- =============================================================
+             CARRUSEL DESLIZANTE CON FLECHAS (ZOMBIE -> TEATRO -> PATIÑO)
+        ============================================================= -->
+        <section class="slider-section">
+
+            <!-- Pestañas de Navegación Rápida -->
+            <div class="slider-nav-tabs">
+                <button class="slide-tab active" id="tab-0" onclick="goToSlide(0)">
+                    <i class="fa-solid fa-skull"></i> 1. Figura Zombie
+                </button>
+                <button class="slide-tab" id="tab-1" onclick="goToSlide(1)">
+                    <i class="fa-solid fa-building-columns"></i> 2. Teatro 31 de Octubre
+                </button>
+                <button class="slide-tab" id="tab-2" onclick="goToSlide(2)">
+                    <i class="fa-solid fa-crown"></i> 3. Simón I. Patiño
+                </button>
+            </div>
+
+            <!-- Botones de Deslizamiento (Izquierda y Derecha) -->
+            <button class="slider-arrow prev" onclick="moveSlide(-1)" title="Deslizar a la izquierda">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button class="slider-arrow next" onclick="moveSlide(1)" title="Deslizar a la derecha">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <!-- Pista Deslizante -->
+            <div class="carousel-wrapper">
+                <div class="slides-track" id="slidesTrack">
+
+                    <!-- =============================================================
+                         SLIDE 0: ZOMBIE (ZOMBIE.GLB) CON POSTPROCESAMIENTO 3D
+                    ============================================================= -->
+                    <div class="carousel-slide" id="slide-0">
+                        <div class="slide-header">
+                            <h2><i class="fa-solid fa-skull"></i> Figura 3D Zombie</h2>
+                            <p>Modelo interactivo 3D con animación, rotación y efectos de postprocesamiento HDR</p>
+                        </div>
+
+                        <div class="model-3d-box" style="height: 520px;">
+                            <span class="model-hint-badge"><i class="fa-solid fa-arrows-spin"></i> Rotar / Zoom 3D</span>
+                            <model-viewer 
+                                id="mvZombie"
+                                src="Zombie.glb" 
+                                ar 
+                                ar-modes="webxr scene-viewer quick-look" 
+                                camera-controls 
+                                tone-mapping="neutral" 
+                                poster="poster.webp" 
+                                shadow-intensity="1.5" 
+                                exposure="1.3" 
+                                autoplay 
+                                auto-rotate>
+                                <div class="progress-bar hide" slot="progress-bar">
+                                    <div class="update-bar"></div>
+                                </div>
+                                <button slot="ar-button" id="ar-button">
+                                    Ver en tu espacio
+                                </button>
+                                <div id="ar-prompt">
+                                    <img src="https://modelviewer.dev/shared-assets/icons/hand.png" alt="AR prompt">
+                                </div>
+                                
+                                <!-- Pipeline de Postprocesamiento Shaders 3D de Google Model Viewer -->
+                                <effect-composer id="composerZombie" render-mode="quality">
+                                    <bloom-effect id="bloomZombie" strength="1.2" threshold="0.75" radius="0.7"></bloom-effect>
+                                    <color-grade-effect tonemapping="aces_filmic" brightness="1.05"></color-grade-effect>
+                                </effect-composer>
+                            </model-viewer>
+                        </div>
+                    </div>
+
+                    <!-- =============================================================
+                         SLIDE 1: TEATRO 31 DE OCTUBRE (TEATRO5.GLB) + RESEÑA + MEDIDAS
+                    ============================================================= -->
+                    <div class="carousel-slide" id="slide-1">
+                        <div class="slide-header">
+                            <h2><i class="fa-solid fa-masks-theater"></i> Teatro 31 de Octubre</h2>
+                            <p>Modelo 3D arquitectónico con postprocesamiento, reseña histórica y medidas</p>
+                        </div>
+
+                        <!-- Modelo 3D Teatro5.glb transparente con postprocesamiento 3D -->
+                        <div class="model-3d-box">
+                            <span class="model-hint-badge"><i class="fa-solid fa-arrows-spin"></i> Rotar / Zoom 3D</span>
+                            <model-viewer 
+                                id="mvTeatro"
+                                src="Teatro5.glb" 
+                                ar 
+                                ar-modes="webxr scene-viewer quick-look" 
+                                camera-controls 
+                                tone-mapping="neutral" 
+                                poster="poster.webp" 
+                                shadow-intensity="1.5" 
+                                exposure="1.2" 
+                                auto-rotate>
+                                <div class="progress-bar hide" slot="progress-bar">
+                                    <div class="update-bar"></div>
+                                </div>
+                                <button slot="ar-button" id="ar-button">
+                                    Ver en tu espacio
+                                </button>
+                                <div id="ar-prompt">
+                                    <img src="https://modelviewer.dev/shared-assets/icons/hand.png" alt="AR prompt">
+                                </div>
+
+                                <!-- Pipeline de Postprocesamiento Shaders 3D -->
+                                <effect-composer id="composerTeatro" render-mode="quality">
+                                    <bloom-effect id="bloomTeatro" strength="0.95" threshold="0.8" radius="0.65"></bloom-effect>
+                                    <color-grade-effect tonemapping="aces_filmic" brightness="1.02"></color-grade-effect>
+                                </effect-composer>
+                            </model-viewer>
+                        </div>
+
+                        <!-- Reseña Histórica -->
+                        <div class="history-card-box">
+                            <h3><i class="fa-solid fa-book-open"></i> Reseña Histórica del Teatro 31 de Octubre</h3>
+                            <p>
+                                El <strong>Teatro 31 de Octubre</strong> de Llallagua es una imponente mole levantada a base de rocas y piedras talladas a mano durante mediados del Siglo XX. Fue construido originalmente bajo la influencia de la industrialización minera del estaño impulsada por las empresas de Simón I. Patiño en el centro minero de Siglo XX, Potosí.
+                            </p>
+                            <p>
+                                Durante décadas, este recinto sirvió como el epicentro social, cinematográfico, teatral y cultural de la comunidad trabajadora minera de Llallagua y Siglo XX, siendo testigo directo de grandes acontecimientos culturales y asambleas históricas.
+                            </p>
+                            <p>
+                                En la década de 1990, la Corporación Minera de Bolivia (COMIBOL) transfirió el Teatro a la Alcaldía/Gobierno Autónomo Municipal de Llallagua. En la actualidad, representa un invaluable monumento arquitectónico del patrimonio minero boliviano.
+                            </p>
+                        </div>
+
+                        <!-- Datos Técnicos, Medidas y Altitud -->
+                        <div class="tech-specs-grid">
+                            <div class="spec-card">
+                                <div class="spec-header">
+                                    <i class="fa-solid fa-mountain"></i>
+                                    <h4>Altitud M.S.N.M.</h4>
+                                </div>
+                                <div class="spec-value">~3,890 m.s.n.m.</div>
+                                <div class="spec-desc">Ubicado a gran altitud andina en Llallagua, Provincia Rafael Bustillo, Departamento de Potosí.</div>
+                            </div>
+
+                            <div class="spec-card">
+                                <div class="spec-header">
+                                    <i class="fa-solid fa-ruler-combined"></i>
+                                    <h4>Dimensiones & Medidas</h4>
+                                </div>
+                                <div class="spec-value">Superficie > 850 m²</div>
+                                <div class="spec-desc">Fachada principal de aproximadamente 15 metros de altura con capacidad para más de 500 espectadores.</div>
+                            </div>
+
+                            <div class="spec-card">
+                                <div class="spec-header">
+                                    <i class="fa-solid fa-cubes"></i>
+                                    <h4>Materiales de Construcción</h4>
+                                </div>
+                                <div class="spec-value">Piedra Labrada a Mano</div>
+                                <div class="spec-desc">Muros exteriores en piedra canteada, vigas de hormigón armado, cerchas metálicas y maderas nobles.</div>
+                            </div>
+
+                            <div class="spec-card">
+                                <div class="spec-header">
+                                    <i class="fa-solid fa-route"></i>
+                                    <h4>Distancias de Referencia</h4>
+                                </div>
+                                <div class="spec-value">95 km de Oruro</div>
+                                <div class="spec-desc">En el campamento minero de Siglo XX, a 95 km de Oruro y 280 km de la ciudad de Potosí.</div>
+                            </div>
+                        </div>
+
+                        <!-- Mapa de Ubicación -->
+                        <div class="map-section">
+                            <h3 style="font-family:'Cinzel',serif; color:var(--accent-gold); margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+                                <i class="fa-solid fa-map-location-dot"></i> Ubicación Geográfica
+                            </h3>
+                            <div class="map-card">
+                                <iframe 
+                                    src="https://www.google.com/maps?q=Teatro%2031%20de%20octubre%20Llallagua&output=embed" 
+                                    referrerpolicy="no-referrer-when-downgrade" 
+                                    allowfullscreen 
+                                    loading="lazy" 
+                                    title="Mapa del Teatro 31 de Octubre">
+                                </iframe>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- =============================================================
+                         SLIDE 2: SIMÓN I. PATIÑO (SIMON2.GLB) + RESEÑA + MOTIVO DE CONSTRUCCIÓN
+                    ============================================================= -->
+                    <div class="carousel-slide" id="slide-2">
+                        <div class="slide-header">
+                            <h2><i class="fa-solid fa-crown"></i> Simón I. Patiño</h2>
+                            <p>Modelo 3D con postprocesamiento, reseña biográfica y el motivo de la construcción</p>
+                        </div>
+
+                        <!-- Modelo 3D simon2.glb transparente con postprocesamiento 3D -->
+                        <div class="model-3d-box">
+                            <span class="model-hint-badge"><i class="fa-solid fa-user-astronaut"></i> Modelo 3D: Simón Patiño</span>
+                            <model-viewer 
+                                id="mvSimon"
+                                src="simon2.glb" 
+                                ar 
+                                ar-modes="webxr scene-viewer quick-look" 
+                                camera-controls 
+                                tone-mapping="neutral" 
+                                poster="poster.webp" 
+                                shadow-intensity="1.5" 
+                                exposure="1.25" 
+                                auto-rotate>
+                                <div class="progress-bar hide" slot="progress-bar">
+                                    <div class="update-bar"></div>
+                                </div>
+                                <button slot="ar-button" id="ar-button">
+                                    Ver en tu espacio
+                                </button>
+                                <div id="ar-prompt">
+                                    <img src="https://modelviewer.dev/shared-assets/icons/hand.png" alt="AR prompt">
+                                </div>
+
+                                <!-- Pipeline de Postprocesamiento Shaders 3D -->
+                                <effect-composer id="composerSimon" render-mode="quality">
+                                    <bloom-effect id="bloomSimon" strength="1.0" threshold="0.75" radius="0.65"></bloom-effect>
+                                    <color-grade-effect tonemapping="aces_filmic" brightness="1.05"></color-grade-effect>
+                                </effect-composer>
+                            </model-viewer>
+                        </div>
+
+                        <!-- Reseña Histórica de Simón I. Patiño -->
+                        <div class="history-card-box">
+                            <h3><i class="fa-solid fa-landmark"></i> Reseña de Simón I. Patiño ("El Barón del Estaño")</h3>
+                            <p>
+                                <strong>Simón Iturri Patiño</strong> (Santibáñez, Cochabamba, 1 de junio de 1860 &ndash; Buenos Aires, 20 de abril de 1947) fue un magnate de la minería boliviana que llegó a ser uno de los hombres más acaudalados del planeta a principios del siglo XX.
+                            </p>
+                            <p>
+                                Tras descubrir y explotar la legendaria veta de estaño de la mina <em>La Salvadora</em> en el cerro Juan del Valle (Llallagua), consolidó un imperio minero global denominado <em>Patiño Mines & Enterprises Consolidated</em>, abasteciendo gran parte del estaño mundial durante las guerras mundiales.
+                            </p>
+                        </div>
+
+                        <!-- Motivo de Construir el Teatro 31 de Octubre -->
+                        <div class="history-card-box" style="border-left: 4px solid var(--accent-gold);">
+                            <h3><i class="fa-solid fa-lightbulb"></i> Motivo de Construcción del Teatro 31 de Octubre</h3>
+                            <p>
+                                <strong>¿Por qué se construyó el Teatro 31 de Octubre?</strong> Durante el apogeo minero del estaño, miles de trabajadores y sus familias habitaban el campamento de Siglo XX y Llallagua bajo el rigor del clima andino a casi 4,000 metros de altura, dedicados a una labor sumamente sacrificada en el interior de la mina.
+                            </p>
+                            <p>
+                                Para garantizar la estabilidad social, el bienestar y el sano esparcimiento de la creciente población minera, la empresa de Simón I. Patiño promovió la edificación de infraestructura civil, sanitaria y cultural de primer nivel. El <strong>Teatro 31 de Octubre</strong> fue erigido expresamente como el gran palacio cinematográfico y escénico para que los trabajadores mineros y la comunidad civil contasen con un espacio digno de recreación artística, proyecciones de cine de estreno, festivales, conciertos y asambleas cívicas.
+                            </p>
+                            <p>
+                                Su fachada monumental tallada en roca viva simboliza el esfuerzo de los mineros y la grandeza industrial de una época dorada en la historia de Potosí y Bolivia.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- =============================================================
+         PESTAÑA EMERGENTE: GALERÍA DE IMÁGENES
+    ============================================================= -->
+    <div id="modalGaleria" class="modal-overlay">
+        <div class="modal-window">
+            <div class="modal-top-bar">
+                <div class="modal-title-group">
+                    <h2><i class="fa-solid fa-images"></i> Galería Fotográfica</h2>
+                    <p>Colección de imágenes del Teatro 31 de Octubre e interiores</p>
+                </div>
+                <button class="modal-close-btn" onclick="closeModal('modalGaleria')" title="Cerrar">&times;</button>
+            </div>
+
+            <!-- Slideshow animado estilo libro -->
+            <div class="book-slider" aria-label="Galería interactiva estilo libro">
+                <div class="pages">
+                    <div class="page" style="background-image:url('imagenes/frentte1.jpg');"></div>
+                    <div class="page" style="background-image:url('imagenes/frente2.jpg');"></div>
+                    <div class="page" style="background-image:url('imagenes/ecenario.jpg');"></div>
+                    <div class="page" style="background-image:url('imagenes/izquierda.jpg');"></div>
+                </div>
+            </div>
+
+            <!-- Grilla interactiva con Lightbox -->
+            <div class="gallery-grid">
+                <div class="gallery-card" onclick="openLightbox('imagenes/frentte1.jpg')">
+                    <div class="gallery-card-img">
+                        <img src="imagenes/frentte1.jpg" alt="Fachada Frontal 1">
+                        <div class="gallery-card-overlay">
+                            <div class="gallery-card-title"><i class="fa-solid fa-camera"></i> Fachada Principal - Vista Frontal</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-card" onclick="openLightbox('imagenes/frente2.jpg')">
+                    <div class="gallery-card-img">
+                        <img src="imagenes/frente2.jpg" alt="Fachada Frontal 2">
+                        <div class="gallery-card-overlay">
+                            <div class="gallery-card-title"><i class="fa-solid fa-camera"></i> Ingreso y Frontis de Piedra</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-card" onclick="openLightbox('imagenes/ecenario.jpg')">
+                    <div class="gallery-card-img">
+                        <img src="imagenes/ecenario.jpg" alt="Escenario del Teatro">
+                        <div class="gallery-card-overlay">
+                            <div class="gallery-card-title"><i class="fa-solid fa-masks-theater"></i> Escenario e Interiores</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-card" onclick="openLightbox('imagenes/izquierda.jpg')">
+                    <div class="gallery-card-img">
+                        <img src="imagenes/izquierda.jpg" alt="Vista Izquierda">
+                        <div class="gallery-card-overlay">
+                            <div class="gallery-card-title"><i class="fa-solid fa-camera"></i> Lateral Izquierdo</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-card" onclick="openLightbox('imagenes/derecha.jpg')">
+                    <div class="gallery-card-img">
+                        <img src="imagenes/derecha.jpg" alt="Vista Derecha">
+                        <div class="gallery-card-overlay">
+                            <div class="gallery-card-title"><i class="fa-solid fa-camera"></i> Lateral Derecho</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gallery-card" onclick="openLightbox('imagenes/atras.jpg')">
+                    <div class="gallery-card-img">
+                        <img src="imagenes/atras.jpg" alt="Vista Trasera">
+                        <div class="gallery-card-overlay">
+                            <div class="gallery-card-title"><i class="fa-solid fa-camera"></i> Vista Trasera de la Estructura</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =============================================================
+         MODAL LIGHTBOX PARA VISUALIZAR IMÁGENES EN TAMAÑO COMPLETO
+    ============================================================= -->
+    <div id="lightboxModal" class="lightbox-modal" onclick="closeLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <img id="lightboxImg" class="lightbox-content" src="" alt="Vista ampliada">
+    </div>
+
+    <!-- =============================================================
+         SCRIPTS: CARRUSEL, TRANSICIONES Y CONTROL DE POSTPROCESAMIENTO
+    ============================================================= -->
+    <script>
+        /* -------------------------------------------------------------
+           LÓGICA DEL CARRUSEL 3D
+        ------------------------------------------------------------- */
+        let currentSlide = 0;
+        const totalSlides = 3;
+        const slidesTrack = document.getElementById('slidesTrack');
+
+        function updateSlider() {
+            slidesTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
+            for (let i = 0; i < totalSlides; i++) {
+                const tab = document.getElementById(`tab-${i}`);
+                if (tab) {
+                    if (i === currentSlide) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                }
+            }
+        }
+
+        function moveSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) {
+                currentSlide = totalSlides - 1;
+            } else if (currentSlide >= totalSlides) {
+                currentSlide = 0;
+            }
+            updateSlider();
+        }
+
+        function goToSlide(index) {
+            closeModal('modalGaleria');
+            currentSlide = index;
+            updateSlider();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Soporte táctil / swipe para deslizar en móviles
+        let touchStartX = 0;
+        let touchEndX = 0;
+        const carouselWrapper = document.querySelector('.carousel-wrapper');
+
+        carouselWrapper.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        carouselWrapper.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold) {
+                moveSlide(1); // Deslizar hacia la izquierda (avanza)
+            } else if (touchEndX > touchStartX + swipeThreshold) {
+                moveSlide(-1); // Deslizar hacia la derecha (retrocede)
+            }
+        }
+
+        // Navegación con flechas del teclado
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('modalGaleria').classList.contains('active')) return;
+            if (e.key === 'ArrowRight') {
+                moveSlide(1);
+            } else if (e.key === 'ArrowLeft') {
+                moveSlide(-1);
+            }
+        });
+
+        /* -------------------------------------------------------------
+           LÓGICA DE CONTROL DE EFECTOS DE POSTPROCESAMIENTO
+        ------------------------------------------------------------- */
+        const fxElements = {
+            vignette: document.getElementById('fxVignette'),
+            grain: document.getElementById('fxGrain'),
+            bloom: document.getElementById('fxBloom'),
+            colorgrade: document.getElementById('fxColorGrade'),
+            chromatic: document.getElementById('fxChromatic')
+        };
+
+        function togglePostFxPanel() {
+            const panel = document.getElementById('postFxHudPanel');
+            panel.classList.toggle('active');
+        }
+
+        function toggleEffect(name, enabled) {
+            const el = fxElements[name];
+            if (el) {
+                if (enabled) {
+                    el.classList.remove('postfx-off');
+                } else {
+                    el.classList.add('postfx-off');
+                }
+            }
+
+            // Actualizar también en el effect-composer 3D si aplica
+            if (name === 'bloom') {
+                const blooms = ['bloomZombie', 'bloomTeatro', 'bloomSimon'];
+                blooms.forEach(id => {
+                    const b = document.getElementById(id);
+                    if (b) b.setAttribute('strength', enabled ? '1.1' : '0');
+                });
+            }
+        }
+
+        function setEffectIntensity(name, val) {
+            if (name === 'bloom') {
+                document.documentElement.style.setProperty('--fx-bloom-intensity', val);
+                const blooms = ['bloomZombie', 'bloomTeatro', 'bloomSimon'];
+                blooms.forEach(id => {
+                    const b = document.getElementById(id);
+                    if (b) b.setAttribute('strength', (parseFloat(val) * 1.5).toString());
+                });
+            } else if (name === 'vignette') {
+                document.documentElement.style.setProperty('--fx-vignette-intensity', val);
+            } else if (name === 'grain') {
+                document.documentElement.style.setProperty('--fx-grain-intensity', val);
+            }
+        }
+
+        function applyFxPreset(preset) {
+            const chkBloom = document.getElementById('chkBloom');
+            const chkVignette = document.getElementById('chkVignette');
+            const chkGrain = document.getElementById('chkGrain');
+            const chkColorGrade = document.getElementById('chkColorGrade');
+            const chkChromatic = document.getElementById('chkChromatic');
+
+            if (preset === 'vintage') {
+                // Cine clásico de época Siglo XX
+                chkBloom.checked = true;
+                chkVignette.checked = true;
+                chkGrain.checked = true;
+                chkColorGrade.checked = true;
+                chkChromatic.checked = true;
+                setEffectIntensity('bloom', 0.5);
+                setEffectIntensity('vignette', 0.95);
+                setEffectIntensity('grain', 0.55);
+            } else if (preset === 'hdr') {
+                // HDR Bloom moderno
+                chkBloom.checked = true;
+                chkVignette.checked = true;
+                chkGrain.checked = false;
+                chkColorGrade.checked = true;
+                chkChromatic.checked = false;
+                setEffectIntensity('bloom', 1.0);
+                setEffectIntensity('vignette', 0.7);
+                setEffectIntensity('grain', 0.1);
+            } else if (preset === 'theatrical') {
+                // Teatral estándar
+                chkBloom.checked = true;
+                chkVignette.checked = true;
+                chkGrain.checked = true;
+                chkColorGrade.checked = true;
+                chkChromatic.checked = true;
+                setEffectIntensity('bloom', 0.75);
+                setEffectIntensity('vignette', 0.85);
+                setEffectIntensity('grain', 0.32);
+            } else if (preset === 'off') {
+                // Desactivar todos
+                chkBloom.checked = false;
+                chkVignette.checked = false;
+                chkGrain.checked = false;
+                chkColorGrade.checked = false;
+                chkChromatic.checked = false;
+            }
+
+            toggleEffect('bloom', chkBloom.checked);
+            toggleEffect('vignette', chkVignette.checked);
+            toggleEffect('grain', chkGrain.checked);
+            toggleEffect('colorgrade', chkColorGrade.checked);
+            toggleEffect('chromatic', chkChromatic.checked);
+        }
+
+        /* -------------------------------------------------------------
+           TRANSICIONES Y MODALES
+        ------------------------------------------------------------- */
+        function transitionToInteriores() {
+            const overlay = document.getElementById('cartoonBlinkOverlay');
+            overlay.classList.remove('blink-open');
+            overlay.classList.add('blink-close');
+            setTimeout(() => {
+                window.location.href = 'interiores_T.html';
+            }, 600);
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal('modalGaleria');
+                closeLightbox();
+                document.getElementById('postFxHudPanel').classList.remove('active');
+            }
+        });
+
+        function openLightbox(imgSrc) {
+            const modal = document.getElementById('lightboxModal');
+            const img = document.getElementById('lightboxImg');
+            img.src = imgSrc;
+            modal.classList.add('active');
+        }
+
+        function closeLightbox() {
+            const modal = document.getElementById('lightboxModal');
+            modal.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
